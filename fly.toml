@@ -1,6 +1,6 @@
-# fly.toml file generated for lz-monitor on 2023-05-29T19:56:53+03:00
+# fly.toml file generated for inscription-indexer
 
-app = "lz-monitor"
+app = "inscription-indexer"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
