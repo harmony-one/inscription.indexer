@@ -1,6 +1,6 @@
 import { Events } from './events.entity';
 
-const entities = [];
+const entities = [Events];
 
 export { Events };
 export default entities;

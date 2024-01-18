@@ -3,7 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Events } from 'src/typeorm';
 import { Repository } from 'typeorm';
-import { Tx, Inscriptions, fetchTransactions, getBlockNumber, sleep, processTxs } from './utils';
+import {
+  Tx,
+  Inscriptions,
+  fetchTransactions,
+  getBlockNumber,
+  sleep,
+  processTxs,
+} from './utils';
 
 const FETCH_BLOCK_STEP = 100;
 const START_BLOCK_NUMBER = 51283000;
@@ -19,11 +26,8 @@ export class IndexerService {
   private inscriptions: Inscriptions[] = [];
 
   constructor(
-    private configService: ConfigService,
-    // @InjectRepository(Events)
-    // private eventsRep: Repository<Events>,
-  ) {
-  }
+    private configService: ConfigService, // @InjectRepository(Events) // private eventsRep: Repository<Events>,
+  ) {}
 
   async start() {
     this.syncTransactions();
@@ -36,7 +40,8 @@ export class IndexerService {
       const unsyncedBlocks = this.latestNodeBlock - this.latestSyncBlock;
 
       const startBlock = this.latestSyncBlock;
-      const range = unsyncedBlocks > FETCH_BLOCK_STEP ? FETCH_BLOCK_STEP : unsyncedBlocks;
+      const range =
+        unsyncedBlocks > FETCH_BLOCK_STEP ? FETCH_BLOCK_STEP : unsyncedBlocks;
       const endBlock = startBlock + range;
 
       const newTxs = await fetchTransactions({ startBlock, endBlock });
@@ -55,20 +60,24 @@ export class IndexerService {
     }
 
     setTimeout(() => this.syncTransactions(), 100);
-  }
+  };
 
   getTxs = () => this.txs;
 
   getInscriptions = (params?: { domain?: string }) => {
     if (params?.domain) {
-      return this.inscriptions.filter(ins => params?.domain in ins.jsonData)
+      return this.inscriptions.filter((ins) => params?.domain in ins.jsonData);
     }
 
     return this.inscriptions;
   };
 
   getProgress = () =>
-    (100 * ((this.latestSyncBlock - START_BLOCK_NUMBER) / (this.latestNodeBlock - START_BLOCK_NUMBER))).toFixed(2);
+    (
+      100 *
+      ((this.latestSyncBlock - START_BLOCK_NUMBER) /
+        (this.latestNodeBlock - START_BLOCK_NUMBER))
+    ).toFixed(2);
 
   getInfo = () => {
     return {
@@ -78,6 +87,6 @@ export class IndexerService {
       totalInscriptions: this.inscriptions.length,
       latestSyncBlock: this.latestSyncBlock,
       latestNodeBlock: this.latestNodeBlock,
-    }
-  }
+    };
+  };
 }

@@ -5,9 +5,7 @@ import { IndexerService } from './indexer.service';
 @ApiTags()
 @Controller()
 export class IndexerController {
-  constructor(
-    private readonly indexerService: IndexerService
-  ) { }
+  constructor(private readonly indexerService: IndexerService) {}
 
   @Get('/info')
   getInfo() {
