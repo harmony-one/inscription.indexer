@@ -14,7 +14,7 @@ export interface Tx {
   input: string; // this is the encoded data
 }
 
-export interface Inscriptions extends Tx {
+export interface Inscription extends Tx {
   jsonData: any;
 }
 
@@ -96,15 +96,13 @@ export async function getBlockNumber(params?: FetchParams): Promise<number> {
 
 export const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-export const processTxs = (txs: Tx[]) => {
+export const processTxs = (txs: Tx[]): Inscription[] => {
   const inscriptions = [];
 
   for (const tx of txs) {
     try {
       const data = Web3Utils.hexToUtf8(tx.input);
-
       const jsonData = JSON.parse(data);
-
       inscriptions.push({
         ...tx,
         jsonData,

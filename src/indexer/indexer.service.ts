@@ -1,58 +1,109 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Events } from 'src/typeorm';
+import { InscriptionEvent, IndexerState } from 'src/typeorm';
 import { Repository } from 'typeorm';
-import {
-  Tx,
-  Inscriptions,
-  fetchTransactions,
-  getBlockNumber,
-  sleep,
-  processTxs,
-} from './utils';
-
-const FETCH_BLOCK_STEP = 100;
-const START_BLOCK_NUMBER = 51283000;
+import { fetchTransactions, getBlockNumber, sleep, processTxs } from './utils';
 
 @Injectable()
 export class IndexerService {
   private readonly logger = new Logger(IndexerService.name);
 
-  private latestSyncBlock = START_BLOCK_NUMBER;
-  private latestNodeBlock = START_BLOCK_NUMBER;
-
-  private txs: Tx[] = [];
-  private inscriptions: Inscriptions[] = [];
+  private latestSyncBlock = this.configService.get('startBlockNumber');
+  private latestNodeBlock = this.configService.get('startBlockNumber');
+  private fetchBlockStep = this.configService.get('fetchBlockStep');
 
   constructor(
-    private configService: ConfigService, // @InjectRepository(Events) // private eventsRep: Repository<Events>,
+    private configService: ConfigService,
+    @InjectRepository(InscriptionEvent)
+    private eventsRep: Repository<InscriptionEvent>,
+    @InjectRepository(IndexerState)
+    private indexerStateRep: Repository<IndexerState>,
   ) {}
 
   async start() {
     this.syncTransactions();
   }
 
+  // async bootstrap() {
+  //   const indexerState = await this.indexerStateRep.findOne({});
+  //   this.logger.log(
+  //     `Bootstrap: indexer state ${
+  //       indexerState ? JSON.stringify(indexerState) : null
+  //     }`,
+  //   );
+  //   if (indexerState) {
+  //     this.latestSyncBlock = indexerState.last_synced_block;
+  //   } else {
+  //     await this.indexerStateRep.insert({
+  //       last_synced_block: this.configService.get('startBlockNumber'),
+  //     });
+  //   }
+  // }
+
+  async getLatestSyncedBlockFromDB() {
+    const indexerState = await this.indexerStateRep.find({
+      where: {
+        indexer_name: 'inscriptions_indexer',
+      },
+    });
+    return indexerState.length ? indexerState[0].last_synced_block : null;
+  }
+
+  async setLatestSyncedBlock(blockNumber: number) {
+    await this.indexerStateRep.upsert(
+      {
+        last_synced_block: blockNumber,
+        indexer_name: 'inscriptions_indexer',
+      },
+      ['indexer_name'],
+    );
+  }
+
   syncTransactions = async () => {
     try {
       this.latestNodeBlock = await getBlockNumber();
+      this.latestSyncBlock =
+        (await this.getLatestSyncedBlockFromDB()) ||
+        this.configService.get('startBlockNumber');
 
-      const unsyncedBlocks = this.latestNodeBlock - this.latestSyncBlock;
+      const startBlock = this.latestSyncBlock + 1;
+      const unsyncedBlocks = this.latestNodeBlock - startBlock;
 
-      const startBlock = this.latestSyncBlock;
       const range =
-        unsyncedBlocks > FETCH_BLOCK_STEP ? FETCH_BLOCK_STEP : unsyncedBlocks;
+        unsyncedBlocks >= this.fetchBlockStep - 1
+          ? this.fetchBlockStep - 1
+          : unsyncedBlocks;
       const endBlock = startBlock + range;
 
       const newTxs = await fetchTransactions({ startBlock, endBlock });
       const newInscriptions = processTxs(newTxs);
 
-      // this.txs = this.txs.concat(newTxs);
-      this.inscriptions = this.inscriptions.concat(newInscriptions);
+      for (const inscriptionTx of newInscriptions) {
+        await this.eventsRep.upsert(
+          {
+            transactionHash: inscriptionTx.hash,
+            address: inscriptionTx.from,
+            name: '',
+            chain: '',
+            blockNumber: inscriptionTx.blockNumber,
+            timestamp: inscriptionTx.timestamp,
+            payload: inscriptionTx.jsonData,
+          },
+          ['transactionHash'],
+        );
+      }
 
+      await this.setLatestSyncedBlock(endBlock);
       this.latestSyncBlock = endBlock;
 
-      if (unsyncedBlocks < FETCH_BLOCK_STEP) {
+      this.logger.log(
+        `[${startBlock} - ${endBlock}] ${range + 1} blocks synced, added ${
+          newInscriptions.length
+        } inscriptions`,
+      );
+
+      if (unsyncedBlocks < this.fetchBlockStep) {
         await sleep(2000);
       }
     } catch (e) {
@@ -62,29 +113,26 @@ export class IndexerService {
     setTimeout(() => this.syncTransactions(), 100);
   };
 
-  getTxs = () => this.txs;
+  getTxs = () => {
+    return [];
+  };
 
   getInscriptions = (params?: { domain?: string }) => {
-    if (params?.domain) {
-      return this.inscriptions.filter((ins) => params?.domain in ins.jsonData);
-    }
-
-    return this.inscriptions;
+    return [];
   };
 
   getProgress = () =>
     (
       100 *
-      ((this.latestSyncBlock - START_BLOCK_NUMBER) /
-        (this.latestNodeBlock - START_BLOCK_NUMBER))
+      ((this.latestSyncBlock - this.fetchBlockStep) /
+        (this.latestNodeBlock - this.fetchBlockStep))
     ).toFixed(2);
 
   getInfo = () => {
     return {
       progress: `${this.getProgress()} %`,
-      fetchBlockStep: FETCH_BLOCK_STEP,
-      // totalTxs: this.txs.length,
-      totalInscriptions: this.inscriptions.length,
+      fetchBlockStep: this.fetchBlockStep,
+      totalInscriptions: 0,
       latestSyncBlock: this.latestSyncBlock,
       latestNodeBlock: this.latestNodeBlock,
     };

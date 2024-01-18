@@ -1,6 +1,7 @@
-import { Events } from './events.entity';
+import { InscriptionEvent } from './events.entity';
+import { IndexerState } from './indexer.state.entity';
 
-const entities = [Events];
+const entities = [InscriptionEvent, IndexerState];
 
-export { Events };
+export { InscriptionEvent, IndexerState };
 export default entities;

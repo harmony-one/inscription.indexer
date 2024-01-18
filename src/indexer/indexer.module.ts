@@ -2,13 +2,14 @@ import { Module } from '@nestjs/common';
 import { IndexerService } from './indexer.service';
 import { ConfigModule } from '@nestjs/config';
 import { IndexerController } from './indexer.controller';
-import { Events } from 'src/typeorm';
+import { IndexerState, InscriptionEvent } from '../typeorm';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
     ConfigModule,
-    // TypeOrmModule.forFeature([Events]),
+    TypeOrmModule.forFeature([InscriptionEvent]),
+    TypeOrmModule.forFeature([IndexerState]),
   ],
   providers: [IndexerService],
   exports: [IndexerService],

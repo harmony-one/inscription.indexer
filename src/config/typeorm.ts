@@ -9,9 +9,9 @@ const config: DataSourceOptions = {
   url: `${process.env.DATABASE_URL}`,
   entities: ['dist/**/*.entity{.ts,.js}'],
   migrations: ['dist/migrations/*{.ts,.js}'],
-  synchronize: false,
+  synchronize: true,
   migrationsTableName: 'migrations',
-  migrationsRun: true,
+  migrationsRun: false,
 };
 
 export default new DataSource(config);
