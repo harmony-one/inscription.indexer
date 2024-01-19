@@ -4,42 +4,33 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InscriptionEvent, IndexerState } from 'src/typeorm';
 import { Repository } from 'typeorm';
 import { fetchTransactions, getBlockNumber, sleep, processTxs } from './utils';
+import { GetInscriptionsDto } from './dto/inscriptions.dto';
 
 @Injectable()
 export class IndexerService {
   private readonly logger = new Logger(IndexerService.name);
 
-  private latestSyncBlock = this.configService.get('startBlockNumber');
-  private latestNodeBlock = this.configService.get('startBlockNumber');
-  private fetchBlockStep = this.configService.get('fetchBlockStep');
+  private latestSyncBlock = this.configService.get('indexer.startBlockNumber');
+  private latestNodeBlock = this.configService.get('indexer.startBlockNumber');
+  private fetchBlockStep = this.configService.get('indexer.fetchBlockStep');
 
   constructor(
     private configService: ConfigService,
     @InjectRepository(InscriptionEvent)
-    private eventsRep: Repository<InscriptionEvent>,
+    private inscriptionsRep: Repository<InscriptionEvent>,
     @InjectRepository(IndexerState)
     private indexerStateRep: Repository<IndexerState>,
   ) {}
 
   async start() {
-    this.syncTransactions();
+    if (this.configService.get('indexer.isEnabled')) {
+      this.syncTransactions();
+    } else {
+      this.logger.warn(
+        'Inscriptions indexer is disabled in config. Set [INDEXER_IS_ENABLED=1] to enable.',
+      );
+    }
   }
-
-  // async bootstrap() {
-  //   const indexerState = await this.indexerStateRep.findOne({});
-  //   this.logger.log(
-  //     `Bootstrap: indexer state ${
-  //       indexerState ? JSON.stringify(indexerState) : null
-  //     }`,
-  //   );
-  //   if (indexerState) {
-  //     this.latestSyncBlock = indexerState.last_synced_block;
-  //   } else {
-  //     await this.indexerStateRep.insert({
-  //       last_synced_block: this.configService.get('startBlockNumber'),
-  //     });
-  //   }
-  // }
 
   async getLatestSyncedBlockFromDB() {
     const indexerState = await this.indexerStateRep.find({
@@ -65,7 +56,7 @@ export class IndexerService {
       this.latestNodeBlock = await getBlockNumber();
       this.latestSyncBlock =
         (await this.getLatestSyncedBlockFromDB()) ||
-        this.configService.get('startBlockNumber');
+        this.configService.get('indexer.startBlockNumber');
 
       const startBlock = this.latestSyncBlock + 1;
       const unsyncedBlocks = this.latestNodeBlock - startBlock;
@@ -80,7 +71,7 @@ export class IndexerService {
       const newInscriptions = processTxs(newTxs);
 
       for (const inscriptionTx of newInscriptions) {
-        await this.eventsRep.upsert(
+        await this.inscriptionsRep.upsert(
           {
             transactionHash: inscriptionTx.hash,
             address: inscriptionTx.from,
@@ -117,8 +108,16 @@ export class IndexerService {
     return [];
   };
 
-  getInscriptions = (params?: { domain?: string }) => {
-    return [];
+  getInscriptions = async (dto: GetInscriptionsDto) => {
+    const { offset, limit } = dto;
+
+    return await this.inscriptionsRep.find({
+      skip: offset,
+      take: limit,
+      order: {
+        blockNumber: 'desc',
+      },
+    });
   };
 
   getProgress = () =>
