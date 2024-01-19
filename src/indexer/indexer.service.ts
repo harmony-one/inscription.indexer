@@ -127,11 +127,14 @@ export class IndexerService {
         (this.latestNodeBlock - this.fetchBlockStep))
     ).toFixed(2);
 
-  getInfo = () => {
+  getInfo = async () => {
+    const totalInscriptions = await this.inscriptionsRep.count({});
+
     return {
+      indexerEnabled: this.configService.get('indexer.isEnabled'),
       progress: `${this.getProgress()} %`,
       fetchBlockStep: this.fetchBlockStep,
-      totalInscriptions: 0,
+      totalInscriptions,
       latestSyncBlock: this.latestSyncBlock,
       latestNodeBlock: this.latestNodeBlock,
     };
