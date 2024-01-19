@@ -5,27 +5,51 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
-@Entity()
-export class Events {
+@Entity({ name: 'inscriptions' })
+export class InscriptionEvent {
+  @ApiProperty()
   @PrimaryGeneratedColumn()
-  id?: number;
+  id: number;
 
+  @ApiProperty()
   @Column({ unique: true })
   transactionHash: string;
 
+  @ApiProperty()
   @Column()
   address: string;
 
+  @ApiProperty()
   @Column()
   name: string;
 
+  @ApiProperty()
   @Column()
   chain: string;
 
-  @Column()
-  blockNumber: string;
+  @ApiProperty()
+  @Column({ type: 'integer' })
+  blockNumber: number;
 
-  @Column({ type: 'json' })
-  payload: any;
+  @ApiProperty()
+  @Column({ type: 'integer' })
+  timestamp: number;
+
+  @ApiProperty()
+  @Column({
+    type: 'simple-json',
+    nullable: false,
+    default: {},
+  })
+  payload: object;
+
+  @ApiProperty()
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt: Date;
+
+  @ApiProperty()
+  @UpdateDateColumn({ name: 'updatedAt' })
+  updatedAt: Date;
 }
