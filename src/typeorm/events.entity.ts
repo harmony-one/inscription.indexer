@@ -23,10 +23,6 @@ export class InscriptionEvent {
 
   @ApiProperty()
   @Column()
-  name: string;
-
-  @ApiProperty()
-  @Column()
   chain: string;
 
   @ApiProperty()
