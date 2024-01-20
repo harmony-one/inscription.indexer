@@ -5,6 +5,7 @@ import { InscriptionEvent, IndexerState } from 'src/typeorm';
 import { Repository } from 'typeorm';
 import { fetchTransactions, getBlockNumber, sleep, processTxs } from './utils';
 import { GetInscriptionsDto } from './dto/inscriptions.dto';
+import { toChecksumAddress } from '@harmony-js/crypto';
 
 @Injectable()
 export class IndexerService {
@@ -74,7 +75,7 @@ export class IndexerService {
         await this.inscriptionsRep.upsert(
           {
             transactionHash: inscriptionTx.hash,
-            address: inscriptionTx.from,
+            address: toChecksumAddress(inscriptionTx.from),
             name: '',
             chain: '',
             blockNumber: inscriptionTx.blockNumber,
