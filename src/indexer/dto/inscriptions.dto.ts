@@ -31,6 +31,12 @@ export class GetInscriptionsDto {
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
+  timestampTo;
+
+  @ApiProperty({ type: Number, required: false })
+  @Type(() => Number)
+  @IsNumber()
+  @IsOptional()
   blockNumberFrom;
 
   @ApiProperty({ type: Number, required: false })
@@ -38,12 +44,6 @@ export class GetInscriptionsDto {
   @IsNumber()
   @IsOptional()
   blockNumberTo;
-
-  @ApiProperty({ type: Number, required: false })
-  @Type(() => Number)
-  @IsNumber()
-  @IsOptional()
-  timestampTo;
 
   @ApiProperty({ type: Number, required: false, default: 0 })
   @Type(() => Number)
