@@ -76,7 +76,6 @@ export class IndexerService {
           {
             transactionHash: inscriptionTx.hash,
             address: toChecksumAddress(inscriptionTx.from),
-            name: '',
             chain: '',
             blockNumber: inscriptionTx.blockNumber,
             timestamp: inscriptionTx.timestamp,
