@@ -8,6 +8,7 @@ export interface Tx {
   blockNumber: number;
   from: string;
   to: string;
+  value: number;
   gas: number;
   gasPrice: number;
   timestamp: number;
@@ -27,6 +28,24 @@ export interface FetchParams {
 export interface FetchTransactionsParams extends FetchParams {
   startBlock: number;
   endBlock: number;
+}
+
+export interface BlockchainTx {
+  blockHash: string;
+  blockNumber: number;
+  from: string;
+  timestamp: number;
+  gas: number;
+  gasPrice: number;
+  hash: string;
+  ethHash: string;
+  input: string;
+  nonce: number;
+  to: string;
+  transactionIndex: number;
+  value: number;
+  shardID: number;
+  toShardID: number;
 }
 
 export const fetchTransactions = async (
@@ -57,13 +76,14 @@ export const fetchTransactions = async (
 
   for (const block of res.data.result) {
     if (block.transactions && Array.isArray(block.transactions)) {
-      const blockTxs = block.transactions.map((tx: any) => ({
+      const blockTxs = block.transactions.map((tx: BlockchainTx) => ({
         hash: tx.hash,
         transactionIndex: tx.transactionIndex,
         blockHash: tx.blockHash,
         blockNumber: tx.blockNumber,
         from: tx.from,
         to: tx.to,
+        value: tx.value,
         gas: tx.gas,
         gasPrice: tx.gasPrice,
         timestamp: tx.timestamp,
@@ -101,12 +121,25 @@ export const processTxs = (txs: Tx[]): Inscription[] => {
 
   for (const tx of txs) {
     try {
-      const data = Web3Utils.hexToUtf8(tx.input);
-      const jsonData = JSON.parse(data);
-      inscriptions.push({
-        ...tx,
-        jsonData,
-      });
+      const utf8String = Web3Utils.hexToUtf8(tx.input);
+
+      try {
+        const jsonData = JSON.parse(utf8String);
+        inscriptions.push({
+          ...tx,
+          jsonData,
+        });
+      } catch (e) {
+        if (utf8String && /[^a-z0-9]/gi.test(utf8String.trim())) {
+          inscriptions.push({
+            ...tx,
+            jsonData: {
+              value: utf8String.trim(),
+              type: 'string',
+            },
+          });
+        }
+      }
     } catch (error) {}
   }
 

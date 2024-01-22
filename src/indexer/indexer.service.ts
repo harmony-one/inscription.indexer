@@ -74,10 +74,14 @@ export class IndexerService {
       for (const inscriptionTx of newInscriptions) {
         await this.inscriptionsRep.upsert(
           {
-            transactionHash: inscriptionTx.hash,
-            address: toChecksumAddress(inscriptionTx.from),
             chain: '',
             blockNumber: inscriptionTx.blockNumber,
+            transactionHash: inscriptionTx.hash,
+            from: toChecksumAddress(inscriptionTx.from),
+            to: toChecksumAddress(inscriptionTx.to),
+            value: inscriptionTx.value,
+            gas: inscriptionTx.gas,
+            gasPrice: inscriptionTx.gasPrice,
             timestamp: inscriptionTx.timestamp,
             payload: inscriptionTx.jsonData,
           },
@@ -109,15 +113,62 @@ export class IndexerService {
   };
 
   getInscriptions = async (dto: GetInscriptionsDto) => {
-    const { offset, limit } = dto;
+    const {
+      transactionHash,
+      timestampFrom,
+      timestampTo,
+      from,
+      to,
+      blockNumberFrom,
+      blockNumberTo,
+      offset,
+      limit,
+    } = dto;
 
-    return await this.inscriptionsRep.find({
-      skip: offset,
-      take: limit,
-      order: {
-        blockNumber: 'desc',
-      },
-    });
+    const cb = this.inscriptionsRep.createQueryBuilder();
+    if (timestampFrom) {
+      cb.andWhere('timestamp >= :timestampFrom', { timestampFrom });
+    }
+    if (timestampTo) {
+      cb.andWhere('timestamp <= :timestampTo', { timestampTo });
+    }
+
+    if (transactionHash) {
+      cb.andWhere('"transactionHash" = :transactionHash', { transactionHash });
+    }
+
+    if (from) {
+      cb.andWhere('"from" = :from', { from });
+    }
+    if (to) {
+      cb.andWhere('"to" = :to', { to });
+    }
+
+    if (blockNumberFrom) {
+      cb.andWhere('"blockNumber" >= :blockNumberFrom', { blockNumberFrom });
+    }
+    if (blockNumberTo) {
+      cb.andWhere('"blockNumber" <= :blockNumberTo', { blockNumberTo });
+    }
+
+    cb.offset(offset).take(limit);
+    cb.orderBy('"blockNumber"', 'DESC');
+
+    return await cb.getMany();
+
+    // return await this.inscriptionsRep.find({
+    //   where: {
+    //     transactionHash,
+    //     blockNumber,
+    //     from,
+    //     to,
+    //   },
+    //   skip: offset,
+    //   take: limit,
+    //   order: {
+    //     blockNumber: 'desc',
+    //   },
+    // });
   };
 
   getProgress = () =>

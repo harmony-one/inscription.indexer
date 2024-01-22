@@ -19,7 +19,23 @@ export class InscriptionEvent {
 
   @ApiProperty()
   @Column()
-  address: string;
+  from: string;
+
+  @ApiProperty()
+  @Column()
+  to: string;
+
+  @ApiProperty()
+  @Column({ type: 'numeric' })
+  value: number;
+
+  @ApiProperty()
+  @Column({ type: 'bigint' })
+  gas: number;
+
+  @ApiProperty()
+  @Column({ type: 'bigint' })
+  gasPrice: number;
 
   @ApiProperty()
   @Column()
@@ -35,7 +51,7 @@ export class InscriptionEvent {
 
   @ApiProperty()
   @Column({
-    type: 'simple-json',
+    type: 'json',
     nullable: false,
     default: {},
   })
