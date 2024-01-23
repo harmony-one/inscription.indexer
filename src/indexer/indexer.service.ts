@@ -212,11 +212,15 @@ export class IndexerService {
   }
 
   getWinner = (data) => {
-    const firstDomain = data[0].transactionHash.slice(-2);
+    const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
+    const diffMap = data.slice(1).map(d => {
+        const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
+        return firstDomain > curDomain ? firstDomain - curDomain : curDomain - firstDomain;
+    });
 
-    const diffMap = data.slice(1).map(d => firstDomain - d.transactionHash.slice(-2));
+    const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
 
-    return data[diffMap.indexOf(Math.min(...diffMap)) + 1];
+    return winner;
   };
 
   getLotteryInfo = async () => {

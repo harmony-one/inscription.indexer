@@ -18,8 +18,12 @@ axios.get(`https://inscription-indexer.fly.dev/inscriptions`, {
     );
 
     // search winner
-    const firstDomain = data[0].transactionHash.slice(-2);
-    const diffMap = data.slice(1).map(d => firstDomain - d.transactionHash.slice(-2));
+    const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
+    const diffMap = data.slice(1).map(d => {
+        const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
+        return firstDomain > curDomain ? firstDomain - curDomain : curDomain - firstDomain;
+    });
+
     const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
 
     const winnerDomain = winner.transactionHash.slice(-2);
@@ -34,3 +38,25 @@ axios.get(`https://inscription-indexer.fly.dev/inscriptions`, {
         totalTxs: data.length,
     });
 })
+
+
+const txs = [
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff69c',
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff69b',
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff68c',
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff61c',
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff600',
+    '0xba446725158111b40a6f6b3facd550f3a657739f3d90ae1aa11449254a5ff69c',
+];
+
+const getWinner = (data) => {
+    const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
+    const diffMap = data.slice(1).map(d => {
+        const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
+        return firstDomain > curDomain ? firstDomain - curDomain : curDomain - firstDomain;
+    });
+    const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
+    return winner;
+}
+
+console.log(getWinner(txs.map(tx => ({ transactionHash: tx }))));
