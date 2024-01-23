@@ -14,6 +14,11 @@ export class IndexerController {
     return this.indexerService.getInfo();
   }
 
+  @Get('/lottery')
+  getLotteryInfo() {
+    return this.indexerService.getLotteryInfo();
+  }
+
   // @Get('/txs')
   // getTxs() {
   //   return this.indexerService.getTxs();
