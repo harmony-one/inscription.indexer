@@ -12,6 +12,8 @@ export class LotteryService {
   private lotteryStartTime = 1706040220;
   private lotteryEndTime = this.lotteryStartTime + 24 * 3600;
 
+  private relayerURL = 'https://1ns-registrar-relayer.hiddenstate.xyz';
+
   constructor(
     private configService: ConfigService,
     private indexerService: IndexerService,
@@ -19,6 +21,10 @@ export class LotteryService {
 
   public start() {
     this.syncLottery();
+    // this.registerDomain(
+    //   'anylongname1234567',
+    //   '0x95D02e967Dd2D2B1839347e0B84E59136b11A073',
+    // );
   }
 
   syncLottery = async () => {
@@ -73,30 +79,36 @@ export class LotteryService {
   };
 
   private async registerDomain(domainName: string, ownerAddress: string) {
-    const tx = await this.registerDomainDC(domainName, ownerAddress);
+    const { transactionHash } = await this.registerDomainDC(
+      domainName,
+      ownerAddress,
+    );
+    console.log('Register domain web3 tx hash:', transactionHash);
 
-    const numberOfAttempts = 5;
-    for (let i = 0; i < numberOfAttempts; i++) {
-      try {
-        this.logger.log(
-          `Relayer register ${domainName} attempt ${
-            i + 1
-          } / ${numberOfAttempts}`,
-        );
+    await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        const result = await this.registerDomainRelayer(
-          domainName,
-          ownerAddress,
-          tx.txHash,
-        );
-        if (result) {
-          break;
-        }
-      } catch (e) {
-        console.log('Register relater error:', e);
-      } finally {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }
+    try {
+      this.logger.log(
+        'Starting register WEB2 domain...',
+        domainName,
+        ownerAddress,
+        transactionHash,
+      );
+      const result = await this.registerDomainRelayer(
+        domainName,
+        ownerAddress,
+        transactionHash,
+      );
+    } catch (e) {
+      this.logger.error('Register WEB2 domain failed:', e.message);
+    }
+
+    try {
+      this.logger.log('Starting generate NFT...');
+      const result = await this.generateNFT(domainName);
+      this.logger.log(`NFT generated:`, result);
+    } catch (e) {
+      this.logger.error('Generate NFT error:', e.message);
     }
   }
 
@@ -129,16 +141,20 @@ export class LotteryService {
     ownerAddress: string,
     txHash: string,
   ) {
-    const { data } = await axios.post(
-      'https://1ns-registrar-relayer.hiddenstate.xyz/purchase',
-      {
-        domain: `${domainName}.country`,
-        txHash,
-        address: ownerAddress,
-        fast: 1,
-      },
-    );
+    const { data } = await axios.post(`${this.relayerURL}/purchase`, {
+      domain: `${domainName}.country`,
+      txHash,
+      address: ownerAddress,
+      fast: 1,
+    });
 
     return data;
+  }
+
+  private async generateNFT(domainName: string) {
+    const { data } = await axios.post(`${this.relayerURL}/gen`, {
+      domain: `${domainName}.country`,
+    });
+    return data as { generated: boolean; metadata: any; };
   }
 }
