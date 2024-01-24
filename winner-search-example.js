@@ -17,6 +17,8 @@ axios.get(`https://inscription-indexer.fly.dev/inscriptions`, {
         d => ['x.com', 'twitter.com'].some(sub => d.payload?.value?.includes(sub))
     );
 
+    data.reverse();
+
     // search winner
     const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
     const diffMap = data.slice(1).map(d => {

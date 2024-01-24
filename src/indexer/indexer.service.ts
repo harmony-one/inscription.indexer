@@ -226,6 +226,8 @@ export class IndexerService {
   getLotteryInfo = async () => {
     const data = this.lotteryData.filter(d => ['x.com', 'twitter.com'].some(sub => d.payload?.value?.includes(sub)));
 
+    data.reverse();
+
     const winner = this.getWinner(data);
 
     const winnerDomain = winner.transactionHash.slice(-2);
