@@ -202,20 +202,22 @@ export class IndexerService {
         to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
         timestampFrom: this.lotteryStartTime,
         timestampTo: this.lotteryEndTime,
-        limit: 1000
-      } as GetInscriptionsDto)
+        limit: 1000,
+      } as GetInscriptionsDto);
     } catch (e) {
       this.logger.error('syncLottery', e);
     }
 
     setTimeout(() => this.syncLottery(), 10000);
-  }
+  };
 
   getWinner = (data) => {
     const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
-    const diffMap = data.slice(1).map(d => {
-        const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
-        return firstDomain > curDomain ? firstDomain - curDomain : curDomain - firstDomain;
+    const diffMap = data.slice(1).map((d) => {
+      const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
+      return firstDomain > curDomain
+        ? firstDomain - curDomain
+        : curDomain - firstDomain;
     });
 
     const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
@@ -224,7 +226,9 @@ export class IndexerService {
   };
 
   getLotteryInfo = async () => {
-    const data = this.lotteryData.filter(d => ['x.com', 'twitter.com'].some(sub => d.payload?.value?.includes(sub)));
+    const data = this.lotteryData.filter((d) =>
+      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)),
+    );
 
     data.reverse();
 
@@ -237,7 +241,7 @@ export class IndexerService {
       endTime: this.lotteryEndTime,
       firstTx: data[0]?.transactionHash,
       winnerTx: winner.transactionHash,
-      winnerDomain,     
+      winnerDomain,
       winnerLink: winner.payload.value,
       totalTxs: data.length,
     };
