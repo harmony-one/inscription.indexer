@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
-import { InscriptionEvent } from '../typeorm';
-import { Repository } from 'typeorm';
 import { GetInscriptionsDto } from '../indexer/dto/inscriptions.dto';
 import { IndexerService } from '../indexer/indexer.service';
+import { DCEns } from 'one-country-sdk';
 
 @Injectable()
 export class LotteryService {
@@ -74,4 +72,28 @@ export class LotteryService {
       totalTxs: data.length,
     };
   };
+
+  private async registerDomain(domainName: string, ownerAddress: string) {
+    const dc = new DCEns({
+      contractAddress: this.configService.get('dc.contractAddress'),
+      privateKey: this.configService.get('dc.privateKey'),
+    });
+
+    const isAvailable = await dc.isAvailable(domainName);
+    if (!isAvailable) {
+      throw new Error(`Domain "${domainName}" is not available`);
+    }
+
+    const secret = Math.random().toString(26).slice(2);
+    const commitment = await dc.makeCommitment(
+      domainName,
+      ownerAddress,
+      secret,
+    );
+    const commitTx = await dc.commit(commitment);
+    // wait for commitment tx mined
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    const registerTx = await dc.register(domainName, ownerAddress, secret);
+    return registerTx;
+  }
 }
