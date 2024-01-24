@@ -4,6 +4,7 @@ import { GetInscriptionsDto } from '../indexer/dto/inscriptions.dto';
 import { IndexerService } from '../indexer/indexer.service';
 import { DCEns } from 'one-country-sdk';
 import axios from 'axios';
+import { PurchaseDomainDto } from '../indexer/dto/domain.dto';
 
 @Injectable()
 export class LotteryService {
@@ -21,10 +22,11 @@ export class LotteryService {
 
   public start() {
     this.syncLottery();
-    // this.registerDomain(
-    //   'anylongname12345678',
-    //   '0x95D02e967Dd2D2B1839347e0B84E59136b11A073',
-    // );
+
+    // this.registerDomain({
+    //   domainName: 'anylongname123456789',
+    //   ownerAddress: '0x95D02e967Dd2D2B1839347e0B84E59136b11A073',
+    // });
   }
 
   syncLottery = async () => {
@@ -78,7 +80,13 @@ export class LotteryService {
     };
   };
 
-  private async registerDomain(domainName: string, ownerAddress: string) {
+  public async registerDomain(dto: PurchaseDomainDto) {
+    const { domainName, ownerAddress } = dto;
+
+    this.logger.log(
+      `Start purchasing domain: ${domainName}, owner: ${ownerAddress}...`,
+    );
+
     const { transactionHash } = await this.registerDomainDC(
       domainName,
       ownerAddress,
@@ -87,36 +95,35 @@ export class LotteryService {
 
     await new Promise((resolve) => setTimeout(resolve, 5000));
 
-    try {
-      this.logger.log(
-        `Start registering web2 domain... ${domainName} ${ownerAddress} ${transactionHash}`,
-      );
-      const result = await this.registerDomainRelayer(
-        domainName,
-        ownerAddress,
-        transactionHash,
-      );
-      this.logger.log(`Web2 domain registered!`);
-    } catch (e) {
-      this.logger.error('Register WEB2 domain failed:', e.message);
+    this.logger.log(
+      `Start registering web2 domain... ${domainName} ${ownerAddress} ${transactionHash}`,
+    );
+    for (let i = 0; i < 5; i++) {
+      try {
+        const resultRegisterDomain = await this.registerDomainRelayer(
+          domainName,
+          ownerAddress,
+          transactionHash,
+        );
+        break;
+      } catch (e) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
     }
+    this.logger.log(`Web2 domain registered!`);
 
-    try {
-      this.logger.log('Start generating NFT...');
-      const result = await this.generateNFT(domainName);
-      this.logger.log(`NFT generated:`, result);
-    } catch (e) {
-      this.logger.error('Generate NFT error:', e.message);
-    }
+    this.logger.log('Start generating NFT...');
+    const resultNFT = await this.generateNFT(domainName);
+    this.logger.log(`NFT generated:`, resultNFT);
 
-    try {
-      this.logger.log('Starting generating cert...');
-      const result = await this.createCert(domainName, ownerAddress);
-      this.logger.log(`Cert generated:`, result);
-      this.logger.log(`Check domain: https://${result.sld}.country`);
-    } catch (e) {
-      this.logger.error('Generate cert error:', e.message);
-    }
+    this.logger.log('Starting generating cert...');
+    const resultCert = await this.createCert(domainName, ownerAddress);
+    this.logger.log(`Cert generated:`, resultCert);
+    this.logger.log(`Check domain: https://${resultCert.sld}.country`);
+
+    return {
+      domain: `https://${resultCert.sld}.country`,
+    };
   }
 
   private async registerDomainDC(domainName: string, ownerAddress: string) {
@@ -162,7 +169,7 @@ export class LotteryService {
     const { data } = await axios.post(`${this.relayerURL}/gen`, {
       domain: `${domainName}.country`,
     });
-    return data as { generated: boolean; metadata: any; };
+    return data as { generated: boolean; metadata: any };
   }
 
   private async createCert(domainName: string, address: string, async = true) {
