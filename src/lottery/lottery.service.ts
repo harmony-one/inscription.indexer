@@ -9,13 +9,13 @@ import axios from 'axios';
 export class LotteryService {
   private readonly logger = new Logger(LotteryService.name);
   private lotteryData = [];
-  private lotteryStartTime = 1706040220;
+  private lotteryStartTime = 1706126400;
   private lotteryEndTime = this.lotteryStartTime + 24 * 3600;
 
   constructor(
     private configService: ConfigService,
     private indexerService: IndexerService,
-  ) {}
+  ) { }
 
   public start() {
     this.syncLottery();
@@ -25,15 +25,23 @@ export class LotteryService {
     try {
       this.lotteryData = await this.indexerService.getInscriptions({
         to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
-        timestampFrom: this.lotteryStartTime,
-        timestampTo: this.lotteryEndTime,
-        limit: 1000,
+        // timestampFrom: this.lotteryStartTime,
+        // timestampTo: this.lotteryEndTime,
+        limit: 10000,
       } as GetInscriptionsDto);
     } catch (e) {
       this.logger.error('syncLottery', e);
     }
 
     setTimeout(() => this.syncLottery(), 10000);
+  };
+
+  getTweetByDomain = async (domain: string) => {
+    const data = this.lotteryData.find(
+      d => d.transactionHash.slice(-2).toLowerCase() === domain.toLowerCase()
+    )
+
+    return data?.payload?.value
   };
 
   getWinner = (data) => {
@@ -52,7 +60,8 @@ export class LotteryService {
 
   getLotteryInfo = async () => {
     const data = this.lotteryData.filter((d) =>
-      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)),
+      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
+      d.timestamp > this.lotteryStartTime
     );
 
     data.reverse();
@@ -79,8 +88,7 @@ export class LotteryService {
     for (let i = 0; i < numberOfAttempts; i++) {
       try {
         this.logger.log(
-          `Relayer register ${domainName} attempt ${
-            i + 1
+          `Relayer register ${domainName} attempt ${i + 1
           } / ${numberOfAttempts}`,
         );
 

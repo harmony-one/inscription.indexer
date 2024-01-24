@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { IndexerService } from './indexer.service';
 import { GetInscriptionsDto } from './dto/inscriptions.dto';
@@ -10,17 +10,11 @@ import { LotteryService } from '../lottery/lottery.service';
 export class IndexerController {
   constructor(
     private readonly indexerService: IndexerService,
-    private lotteryService: LotteryService,
-  ) {}
+  ) { }
 
   @Get('/info')
   getInfo() {
     return this.indexerService.getInfo();
-  }
-
-  @Get('/lottery')
-  getLotteryInfo() {
-    return this.lotteryService.getLotteryInfo();
   }
 
   // @Get('/txs')
