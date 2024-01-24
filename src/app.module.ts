@@ -9,6 +9,7 @@ import entities from './typeorm';
 import { IndexerModule } from './indexer/indexer.module';
 import { Web3Module } from 'nest-web3';
 import { typeormConfig } from './config/typeorm';
+import { LotteryService } from './lottery/lottery.service';
 
 @Module({
   imports: [
@@ -26,6 +27,6 @@ import { typeormConfig } from './config/typeorm';
     PrometheusModule.register(),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, LotteryService],
 })
 export class AppModule {}

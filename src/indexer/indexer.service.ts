@@ -26,7 +26,6 @@ export class IndexerService {
   async start() {
     if (this.configService.get('indexer.isEnabled')) {
       this.syncTransactions();
-      this.syncLottery();
     } else {
       this.logger.warn(
         'Inscriptions indexer is disabled in config. Set [INDEXER_IS_ENABLED=1] to enable.',
@@ -113,7 +112,7 @@ export class IndexerService {
     return [];
   };
 
-  getInscriptions = async (dto: GetInscriptionsDto) => {
+  public getInscriptions = async (dto: GetInscriptionsDto) => {
     const {
       transactionHash,
       timestampFrom,
@@ -189,61 +188,6 @@ export class IndexerService {
       totalInscriptions,
       latestSyncBlock: this.latestSyncBlock,
       latestNodeBlock: this.latestNodeBlock,
-    };
-  };
-
-  private lotteryData = [];
-  private lotteryStartTime = 1706040220;
-  private lotteryEndTime = this.lotteryStartTime + 24 * 3600;
-
-  syncLottery = async () => {
-    try {
-      this.lotteryData = await this.getInscriptions({
-        to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
-        timestampFrom: this.lotteryStartTime,
-        timestampTo: this.lotteryEndTime,
-        limit: 1000,
-      } as GetInscriptionsDto);
-    } catch (e) {
-      this.logger.error('syncLottery', e);
-    }
-
-    setTimeout(() => this.syncLottery(), 10000);
-  };
-
-  getWinner = (data) => {
-    const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
-    const diffMap = data.slice(1).map((d) => {
-      const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
-      return firstDomain > curDomain
-        ? firstDomain - curDomain
-        : curDomain - firstDomain;
-    });
-
-    const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
-
-    return winner;
-  };
-
-  getLotteryInfo = async () => {
-    const data = this.lotteryData.filter((d) =>
-      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)),
-    );
-
-    data.reverse();
-
-    const winner = this.getWinner(data);
-
-    const winnerDomain = winner.transactionHash.slice(-2);
-
-    return {
-      startTime: this.lotteryStartTime,
-      endTime: this.lotteryEndTime,
-      firstTx: data[0]?.transactionHash,
-      winnerTx: winner.transactionHash,
-      winnerDomain,
-      winnerLink: winner.payload.value,
-      totalTxs: data.length,
     };
   };
 }

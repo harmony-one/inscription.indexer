@@ -3,9 +3,7 @@ import { IndexerService } from './indexer/indexer.service';
 
 @Injectable()
 export class AppService {
-    constructor(
-        private indexerService: IndexerService,
-    ) {
-        indexerService.start();
-    }
+  constructor(private indexerService: IndexerService) {
+    indexerService.start();
+  }
 }
