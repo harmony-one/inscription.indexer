@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { GetInscriptionsDto } from '../indexer/dto/inscriptions.dto';
 import { IndexerService } from '../indexer/indexer.service';
 import { DCEns } from 'one-country-sdk';
+import axios from 'axios';
 
 @Injectable()
 export class LotteryService {
@@ -14,11 +15,9 @@ export class LotteryService {
   constructor(
     private configService: ConfigService,
     private indexerService: IndexerService,
-  ) {
-    this.start();
-  }
+  ) {}
 
-  private start() {
+  public start() {
     this.syncLottery();
   }
 
@@ -74,6 +73,34 @@ export class LotteryService {
   };
 
   private async registerDomain(domainName: string, ownerAddress: string) {
+    const tx = await this.registerDomainDC(domainName, ownerAddress);
+
+    const numberOfAttempts = 5;
+    for (let i = 0; i < numberOfAttempts; i++) {
+      try {
+        this.logger.log(
+          `Relayer register ${domainName} attempt ${
+            i + 1
+          } / ${numberOfAttempts}`,
+        );
+
+        const result = await this.registerDomainRelayer(
+          domainName,
+          ownerAddress,
+          tx.txHash,
+        );
+        if (result) {
+          break;
+        }
+      } catch (e) {
+        console.log('Register relater error:', e);
+      } finally {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
+  private async registerDomainDC(domainName: string, ownerAddress: string) {
     const dc = new DCEns({
       contractAddress: this.configService.get('dc.contractAddress'),
       privateKey: this.configService.get('dc.privateKey'),
@@ -92,8 +119,26 @@ export class LotteryService {
     );
     const commitTx = await dc.commit(commitment);
     // wait for commitment tx mined
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 6000));
     const registerTx = await dc.register(domainName, ownerAddress, secret);
     return registerTx;
+  }
+
+  private async registerDomainRelayer(
+    domainName: string,
+    ownerAddress: string,
+    txHash: string,
+  ) {
+    const { data } = await axios.post(
+      'https://1ns-registrar-relayer.hiddenstate.xyz/purchase',
+      {
+        domain: `${domainName}.country`,
+        txHash,
+        address: ownerAddress,
+        fast: 1,
+      },
+    );
+
+    return data;
   }
 }
