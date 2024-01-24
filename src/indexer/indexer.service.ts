@@ -112,7 +112,7 @@ export class IndexerService {
     return [];
   };
 
-  getInscriptions = async (dto: GetInscriptionsDto) => {
+  public getInscriptions = async (dto: GetInscriptionsDto) => {
     const {
       transactionHash,
       timestampFrom,
