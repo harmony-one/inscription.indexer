@@ -31,6 +31,11 @@ export class AppController {
     return this.lotteryService.getLotteryInfo();
   }
 
+  @Get('/stats')
+  getLotteryStats() {
+    return this.lotteryService.getLotteryStats();
+  }
+
   @Get('/tweet/:id')
   getTweetByDomain(@Param('id') id: string) {
     return this.lotteryService.getTweetByDomain(id);
