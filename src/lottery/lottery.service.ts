@@ -25,8 +25,8 @@ export class LotteryService {
     try {
       this.lotteryData = await this.indexerService.getInscriptions({
         to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
-        // timestampFrom: this.lotteryStartTime,
-        // timestampTo: this.lotteryEndTime,
+        timestampFrom: this.lotteryStartTime,
+        timestampTo: this.lotteryEndTime,
         limit: 10000,
       } as GetInscriptionsDto);
     } catch (e) {
@@ -38,25 +38,66 @@ export class LotteryService {
 
   getTweetByDomain = async (domain: string) => {
     const data = this.lotteryData.find(
-      d => d.transactionHash.slice(-2).toLowerCase() === domain.toLowerCase()
+      d => d.transactionHash.slice(-(domain.length)).toLowerCase() === domain.toLowerCase()
     )
 
     return data?.payload?.value
   };
 
-  getWinner = (data) => {
-    const firstDomain = Number(`0x${data[0].transactionHash.slice(-2)}`);
+  getWinner = (data, digit = 2) => {
+    const firstDomain = Number(`0x${data[0].transactionHash.slice(-digit)}`);
     const diffMap = data.slice(1).map((d) => {
-      const curDomain = Number(`0x${d.transactionHash.slice(-2)}`);
+      const curDomain = Number(`0x${d.transactionHash.slice(-digit)}`);
       return firstDomain > curDomain
         ? firstDomain - curDomain
         : curDomain - firstDomain;
     });
 
-    const winner = data[diffMap.indexOf(Math.min(...diffMap)) + 1];
+    const minDiff = Math.min(...diffMap);
 
-    return winner;
+    const winners = [];
+
+    diffMap.forEach((value, idx) => {
+      if (value === minDiff) {
+        winners.push(data[idx + 1])
+      }
+    })
+
+    if (winners.length > 2) {
+      return this.getWinner([data[0], ...winners], digit + 1)
+    }
+
+    return {
+      winner: winners[0],
+      winners: digit > 2 ? data.slice(1) : winners
+    }
   };
+
+  getLotteryStats = async () => {
+    const data = this.lotteryData.filter((d) =>
+      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
+      d.timestamp > this.lotteryStartTime
+    );
+
+    let inscriptionsByWallet = data.reduce((acc, d) => {
+      acc[d.from] = (acc[d.from] || 0) + 1;
+      return acc;
+    }, {})
+
+    // sort
+    inscriptionsByWallet = Object.entries(inscriptionsByWallet)
+      .sort(([, a], [, b]) => a > b ? -1 : 1)
+      .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
+    const uniqueWallets = Object.keys(inscriptionsByWallet).length;
+
+    return {
+      totalInscriptions: this.lotteryData.length,
+      totalValidInscriptions: data.length,
+      uniqueWallets,
+      inscriptionsByWallet
+    }
+  }
 
   getLotteryInfo = async () => {
     const data = this.lotteryData.filter((d) =>
@@ -66,7 +107,7 @@ export class LotteryService {
 
     data.reverse();
 
-    const winner = this.getWinner(data);
+    const { winner, winners } = this.getWinner(data);
 
     const winnerDomain = winner.transactionHash.slice(-2);
 
@@ -78,6 +119,7 @@ export class LotteryService {
       winnerDomain,
       winnerLink: winner.payload.value,
       totalTxs: data.length,
+      winners: winners.map(w => w.transactionHash),
     };
   };
 
