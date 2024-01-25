@@ -155,20 +155,6 @@ export class IndexerService {
     cb.orderBy('"blockNumber"', 'DESC');
 
     return await cb.getMany();
-
-    // return await this.inscriptionsRep.find({
-    //   where: {
-    //     transactionHash,
-    //     blockNumber,
-    //     from,
-    //     to,
-    //   },
-    //   skip: offset,
-    //   take: limit,
-    //   order: {
-    //     blockNumber: 'desc',
-    //   },
-    // });
   };
 
   getProgress = () =>

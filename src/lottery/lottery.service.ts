@@ -15,7 +15,7 @@ export class LotteryService {
   constructor(
     private configService: ConfigService,
     private indexerService: IndexerService,
-  ) { }
+  ) {}
 
   public start() {
     this.syncLottery();
@@ -23,8 +23,10 @@ export class LotteryService {
 
   syncLottery = async () => {
     try {
+      const lotteryAddress = this.configService.get('lotteryIndexer.address');
+
       this.lotteryData = await this.indexerService.getInscriptions({
-        to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
+        to: lotteryAddress,
         // timestampFrom: this.lotteryStartTime,
         // timestampTo: this.lotteryEndTime,
         limit: 10000,
@@ -38,10 +40,10 @@ export class LotteryService {
 
   getTweetByDomain = async (domain: string) => {
     const data = this.lotteryData.find(
-      d => d.transactionHash.slice(-2).toLowerCase() === domain.toLowerCase()
-    )
+      (d) => d.transactionHash.slice(-2).toLowerCase() === domain.toLowerCase(),
+    );
 
-    return data?.payload?.value
+    return data?.payload?.value;
   };
 
   getWinner = (data) => {
@@ -59,9 +61,9 @@ export class LotteryService {
   };
 
   getLotteryInfo = async () => {
-    const data = this.lotteryData.filter((d) =>
-      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
-      d.timestamp > this.lotteryStartTime
+    const data = this.lotteryData.filter(
+      (d) =>
+      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) && d.timestamp > this.lotteryStartTime
     );
 
     data.reverse();
@@ -88,7 +90,8 @@ export class LotteryService {
     for (let i = 0; i < numberOfAttempts; i++) {
       try {
         this.logger.log(
-          `Relayer register ${domainName} attempt ${i + 1
+          `Relayer register ${domainName} attempt ${
+            i + 1
           } / ${numberOfAttempts}`,
         );
 
@@ -125,11 +128,10 @@ export class LotteryService {
       ownerAddress,
       secret,
     );
-    const commitTx = await dc.commit(commitment);
+    await dc.commit(commitment);
     // wait for commitment tx mined
     await new Promise((resolve) => setTimeout(resolve, 6000));
-    const registerTx = await dc.register(domainName, ownerAddress, secret);
-    return registerTx;
+    return await dc.register(domainName, ownerAddress, secret);
   }
 
   private async registerDomainRelayer(
@@ -138,7 +140,7 @@ export class LotteryService {
     txHash: string,
   ) {
     const { data } = await axios.post(
-      'https://1ns-registrar-relayer.hiddenstate.xyz/purchase',
+      `${this.configService.get('relayer.url')}/purchase`,
       {
         domain: `${domainName}.country`,
         txHash,
