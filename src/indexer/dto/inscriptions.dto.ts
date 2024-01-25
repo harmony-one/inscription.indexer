@@ -25,25 +25,25 @@ export class GetInscriptionsDto {
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
-  timestampFrom;
+  timestampFrom: number;
 
   @ApiProperty({ type: Number, required: false })
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
-  timestampTo;
+  timestampTo: number;
 
   @ApiProperty({ type: Number, required: false })
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
-  blockNumberFrom;
+  blockNumberFrom: number;
 
   @ApiProperty({ type: Number, required: false })
   @Type(() => Number)
   @IsNumber()
   @IsOptional()
-  blockNumberTo;
+  blockNumberTo: number;
 
   @ApiProperty({ type: Number, required: false, default: 0 })
   @Type(() => Number)

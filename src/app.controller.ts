@@ -8,9 +8,8 @@ import { LotteryService } from './lottery/lottery.service';
 export class AppController {
   constructor(
     private readonly configService: ConfigService,
-    private lotteryService: LotteryService
-
-    ) {}
+    private lotteryService: LotteryService,
+  ) {}
   @Get('/version')
   getVersion() {
     return this.configService.get('version');

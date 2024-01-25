@@ -16,8 +16,14 @@ export default () => ({
     fetchBlockStep: parseInt(process.env.FETCH_BLOCK_STEP, 10) || 500,
     startBlockNumber: parseInt(process.env.START_BLOCK_NUMBER, 10) || 51283000,
   },
+  lotteryIndexer: {
+    address: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
+  },
   dc: {
     contractAddress: '0x547942748Cc8840FEc23daFdD01E6457379B446D',
     privateKey: process.env.PRIVATE_KEY || '',
+  },
+  relayer: {
+    url: 'https://1ns-registrar-relayer.hiddenstate.xyz',
   },
 });

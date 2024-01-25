@@ -17,11 +17,6 @@ export class IndexerController {
     return this.indexerService.getInfo();
   }
 
-  // @Get('/txs')
-  // getTxs() {
-  //   return this.indexerService.getTxs();
-  // }
-
   @Get('/inscriptions')
   @ApiOkResponse({
     type: InscriptionEvent,
