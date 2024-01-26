@@ -84,7 +84,7 @@ export class DomainService {
       });
 
       // Access-control for 1-letter domains
-      this.domainsData = domainsData.filter((item, _, arr) => {
+      this.domainsData = this.domainsData.concat(domainsData.filter((item, _, arr) => {
         const { domain, inscription } = item;
 
         if (domain.length === 1) {
@@ -99,7 +99,7 @@ export class DomainService {
           }
         }
         return true;
-      });
+      }));
     } catch (e) {
       this.logger.error('syncDomains', e);
     }
