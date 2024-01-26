@@ -55,7 +55,7 @@ export class DomainService {
 
             let type;
 
-            if (url.includes('twitter.com')) {
+            if (url.includes('twitter.com') || url.includes('x.com')) {
               type = 'twitter';
             }
 
