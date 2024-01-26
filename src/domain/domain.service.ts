@@ -37,6 +37,8 @@ export class DomainService {
         limit: first ? 100 : 10000,
       } as GetInscriptionsDto);
 
+      const domainsData: Domain[] = [];
+
       data.forEach((value) => {
         if (
           !this.domainsData.find(
@@ -66,7 +68,7 @@ export class DomainService {
             }
 
             if (domain && type && url && !restrictedDomains.includes(domain)) {
-              this.domainsData.push({
+              domainsData.push({
                 domain,
                 type,
                 url,
@@ -79,6 +81,24 @@ export class DomainService {
             console.error('syncDomains', e);
           }
         }
+      });
+
+      // Access-control for 1-letter domains
+      this.domainsData = domainsData.filter((item, _, arr) => {
+        const { domain, inscription } = item;
+
+        if (domain.length === 1) {
+          const allRecords = arr
+            .filter((item) => item.domain === domain)
+            .sort((a, b) => {
+              return a.inscription.blockNumber - b.inscription.blockNumber
+            });
+          if (allRecords.length > 0) {
+            const isOwner = allRecords[0].inscription.from === inscription.from;
+            return isOwner;
+          }
+        }
+        return true;
       });
     } catch (e) {
       this.logger.error('syncDomains', e);
