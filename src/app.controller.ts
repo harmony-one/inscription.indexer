@@ -43,13 +43,13 @@ export class AppController {
     return this.lotteryService.getTweetByDomain(id);
   }
 
-  @Get('/domain/:id')
-  getMetaByDomain(@Param('id') id: string) {
-    return this.domainService.getLatestInscriptionByDomain(id);
+  @Get('/domain/:name')
+  getMetaByDomain(@Param('name') name: string) {
+    return this.domainService.getLatestInscriptionByDomain(name);
   }
 
-  @Get('/domains/:id')
-  getAllMetaByDomain(@Param('id') id: string) {
-    return this.domainService.getInscriptionsByDomain(id);
+  @Get('/domains/:name')
+  getAllMetaByDomain(@Param('name') name: string) {
+    return this.domainService.getInscriptionsByDomain(name);
   }
 }

@@ -20,4 +20,11 @@ export default () => ({
     contractAddress: '0x547942748Cc8840FEc23daFdD01E6457379B446D',
     privateKey: process.env.PRIVATE_KEY || '',
   },
+  domains: {
+    // domains cannot be overwritten by inscriptions
+    // inscriptions with these domains will be ignored
+    restrictedList: [
+      '1', 'd', 'h', 's', 'x', '9', 'btc', 'arb', 'tia', 'sol', 'base', 'rune', 'usdc', 'usdt', 'base', 'bsc',
+    ],
+  },
 });
