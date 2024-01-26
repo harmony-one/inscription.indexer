@@ -2,15 +2,17 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { LotteryService } from './lottery/lottery.service';
+import { DomainService } from './domain/domain.service';
 
 @ApiTags('app')
 @Controller()
 export class AppController {
   constructor(
     private readonly configService: ConfigService,
-    private lotteryService: LotteryService
+    private lotteryService: LotteryService,
+    private domainService: DomainService
 
-    ) {}
+  ) { }
   @Get('/version')
   getVersion() {
     return this.configService.get('version');
@@ -39,5 +41,15 @@ export class AppController {
   @Get('/tweet/:id')
   getTweetByDomain(@Param('id') id: string) {
     return this.lotteryService.getTweetByDomain(id);
+  }
+
+  @Get('/domain/:id')
+  getMetaByDomain(@Param('id') id: string) {
+    return this.domainService.getLatestInscriptionByDomain(id);
+  }
+
+  @Get('/domains/:id')
+  getAllMetaByDomain(@Param('id') id: string) {
+    return this.domainService.getInscriptionsByDomain(id);
   }
 }

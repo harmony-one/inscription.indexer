@@ -10,6 +10,7 @@ import { IndexerModule } from './indexer/indexer.module';
 import { Web3Module } from 'nest-web3';
 import { typeormConfig } from './config/typeorm';
 import { LotteryService } from './lottery/lottery.service';
+import { DomainService } from './domain/domain.service';
 
 @Module({
   imports: [
@@ -27,6 +28,6 @@ import { LotteryService } from './lottery/lottery.service';
     PrometheusModule.register(),
   ],
   controllers: [AppController],
-  providers: [AppService, LotteryService],
+  providers: [AppService, LotteryService, DomainService],
 })
 export class AppModule {}
