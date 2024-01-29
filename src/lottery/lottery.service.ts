@@ -9,8 +9,8 @@ import axios from 'axios';
 export class LotteryService {
   private readonly logger = new Logger(LotteryService.name);
   private lotteryData = [];
-  private lotteryStartTime = 1706126400;
-  private lotteryEndTime = this.lotteryStartTime + 24 * 3600;
+  private lotteryStartTime = 1706641200;
+  private lotteryEndTime = 1706727600;
 
   constructor(
     private configService: ConfigService,
