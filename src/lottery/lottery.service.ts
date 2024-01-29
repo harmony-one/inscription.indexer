@@ -45,6 +45,13 @@ export class LotteryService {
   };
 
   getWinner = (data, digit = 2) => {
+    if (data.length === 0) {
+      return {
+        winner: undefined,
+        winners: [],
+      };
+    }
+
     const firstDomain = Number(`0x${data[0].transactionHash.slice(-digit)}`);
     const diffMap = data.slice(1).map((d) => {
       const curDomain = Number(`0x${d.transactionHash.slice(-digit)}`);
@@ -108,16 +115,22 @@ export class LotteryService {
     data.reverse();
 
     const { winner, winners } = this.getWinner(data);
-
-    const winnerDomain = winner.transactionHash.slice(-2);
+    let winnerDomain = '';
+    let winnerTx = '';
+    let winnerLink = '';
+    if (winner) {
+      winnerDomain = winner.transactionHash.slice(-2);
+      winnerTx = winner.transactionHash;
+      winnerLink = winner.payload.value;
+    }
 
     return {
       startTime: this.lotteryStartTime,
       endTime: this.lotteryEndTime,
       firstTx: data[0]?.transactionHash,
-      winnerTx: winner.transactionHash,
-      winnerDomain,
-      winnerLink: winner.payload.value,
+      winnerTx: winnerTx,
+      winnerDomain: winnerDomain,
+      winnerLink: winnerLink,
       totalTxs: data.length,
       winners: winners.map(w => w.transactionHash),
     };
