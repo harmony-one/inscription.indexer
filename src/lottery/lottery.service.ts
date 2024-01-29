@@ -63,14 +63,14 @@ export class LotteryService {
       }
     })
 
-    if (winners.length > 2) {
-      return this.getWinner([data[0], ...winners], digit + 1)
+    if (winners.length > 1) {
+      winners.sort((a, b) => b.timestamp - a.timestamp); // most recent tx is the winner
     }
 
     return {
       winner: winners[0],
-      winners: digit > 2 ? data.slice(1) : winners
-    }
+      winners: winners
+    };
   };
 
   getLotteryStats = async () => {
