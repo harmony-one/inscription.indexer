@@ -3,12 +3,13 @@ import { GetInscriptionsDto } from '../indexer/dto/inscriptions.dto';
 import { IndexerService } from '../indexer/indexer.service';
 import { InscriptionEvent } from 'src/typeorm';
 import { ConfigService } from '@nestjs/config';
+import { URL_TYPE, getTypeByUrl } from './helpers';
 
 export interface Domain {
   domain: string;
   path: string;
-  type: string;
   url: string;
+  type: URL_TYPE;
   blockNumber: number;
   inscription: InscriptionEvent;
 }
@@ -55,25 +56,11 @@ export class DomainService {
 
               domain = domain.replace('www.', '');
 
-              let type;
-
-              if (url.includes('twitter.com') || url.includes('x.com')) {
-                type = 'twitter';
-              }
-
-              if (url.includes('notion.com') || url.includes('notion.site')) {
-                type = 'notion';
-              }
-
-              if (url.includes('substack.com')) {
-                type = 'substack';
-              }
-
-              if (domain && type && url && !restrictedDomains.includes(domain)) {
+              if (domain && url && !restrictedDomains.includes(domain)) {
                 domainsData.push({
                   domain,
-                  type,
                   url,
+                  type: getTypeByUrl(url),
                   path,
                   blockNumber: value.blockNumber,
                   inscription: value,
@@ -115,7 +102,9 @@ export class DomainService {
   };
 
   getLatestInscriptionByDomain = (domain: string) => {
-    const inscriptions = this.domainsData.filter((d) => d.domain === domain && !d.path);
+    const inscriptions = this.domainsData.filter(
+      d => d.domain === domain && !d.path && d.type
+    );
 
     inscriptions.sort((a, b) =>
       Number(a.blockNumber) > Number(b.blockNumber) ? -1 : 1,
