@@ -6,9 +6,9 @@ import { ConfigService } from '@nestjs/config';
 
 export interface Domain {
   domain: string;
+  path: string;
   type: string;
   url: string;
-  year: string;
   gasPrice: number;
   inscription: InscriptionEvent;
 }
@@ -23,7 +23,7 @@ export class DomainService {
   constructor(
     private indexerService: IndexerService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   public start() {
     this.syncDomains(true);
@@ -48,34 +48,37 @@ export class DomainService {
           try {
             //@ts-ignore
             const inscriptionString = value.payload?.value;
-            const [domainYear = '', url = ''] = inscriptionString.split(',');
-            let [domain, year] = domainYear.split('/');
 
-            domain = domain.replace('www.', '');
+            if (inscriptionString) {
+              const [domainWithPath = '', url = ''] = inscriptionString.split(',');
+              let [domain, path] = domainWithPath.split('/');
 
-            let type;
+              domain = domain.replace('www.', '');
 
-            if (url.includes('twitter.com') || url.includes('x.com')) {
-              type = 'twitter';
-            }
+              let type;
 
-            if (url.includes('notion.com') || url.includes('notion.site')) {
-              type = 'notion';
-            }
+              if (url.includes('twitter.com') || url.includes('x.com')) {
+                type = 'twitter';
+              }
 
-            if (url.includes('substack.com')) {
-              type = 'substack';
-            }
+              if (url.includes('notion.com') || url.includes('notion.site')) {
+                type = 'notion';
+              }
 
-            if (domain && type && url && !restrictedDomains.includes(domain)) {
-              domainsData.push({
-                domain,
-                type,
-                url,
-                year,
-                gasPrice: value.gasPrice,
-                inscription: value,
-              });
+              if (url.includes('substack.com')) {
+                type = 'substack';
+              }
+
+              if (domain && type && url && !restrictedDomains.includes(domain)) {
+                domainsData.push({
+                  domain,
+                  type,
+                  url,
+                  path,
+                  gasPrice: value.gasPrice,
+                  inscription: value,
+                });
+              }
             }
           } catch (e) {
             console.error('syncDomains', e);
@@ -112,7 +115,17 @@ export class DomainService {
   };
 
   getLatestInscriptionByDomain = (domain: string) => {
-    const inscriptions = this.domainsData.filter((d) => d.domain === domain);
+    const inscriptions = this.domainsData.filter((d) => d.domain === domain && !d.path);
+
+    inscriptions.sort((a, b) =>
+      Number(a.gasPrice) > Number(b.gasPrice) ? -1 : 1,
+    );
+
+    return inscriptions[0];
+  };
+
+  getLatestInscriptionByDomainPath = (domain: string, path: string) => {
+    const inscriptions = this.domainsData.filter((d) => d.domain === domain && d.path === path);
 
     inscriptions.sort((a, b) =>
       Number(a.gasPrice) > Number(b.gasPrice) ? -1 : 1,
