@@ -21,7 +21,7 @@ export class IndexerService {
     private inscriptionsRep: Repository<InscriptionEvent>,
     @InjectRepository(IndexerState)
     private indexerStateRep: Repository<IndexerState>,
-  ) {}
+  ) { }
 
   async start() {
     if (this.configService.get('indexer.isEnabled')) {
@@ -77,8 +77,8 @@ export class IndexerService {
             chain: '',
             blockNumber: inscriptionTx.blockNumber,
             transactionHash: inscriptionTx.hash,
-            from: toChecksumAddress(inscriptionTx.from),
-            to: toChecksumAddress(inscriptionTx.to),
+            from: inscriptionTx.from && toChecksumAddress(inscriptionTx.from),
+            to: inscriptionTx.to && toChecksumAddress(inscriptionTx.to),
             value: inscriptionTx.value,
             gas: inscriptionTx.gas,
             gasPrice: inscriptionTx.gasPrice,
@@ -93,8 +93,7 @@ export class IndexerService {
       this.latestSyncBlock = endBlock;
 
       this.logger.log(
-        `[${startBlock} - ${endBlock}] ${range + 1} blocks synced, added ${
-          newInscriptions.length
+        `[${startBlock} - ${endBlock}] ${range + 1} blocks synced, added ${newInscriptions.length
         } inscriptions`,
       );
 
