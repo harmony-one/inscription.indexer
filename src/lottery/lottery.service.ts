@@ -44,6 +44,24 @@ export class LotteryService {
     return data?.payload?.value
   };
 
+  getTweetByDomainFull = async (domain: string) => {
+    const data = this.lotteryData.find(
+      d => d.transactionHash.slice(-(domain.length)).toLowerCase() === domain.toLowerCase()
+    )
+
+    if (data.length > 1) {
+      data.sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    return data && {
+      domain,
+      url: data.payload?.value,
+      type: 'twitter',
+      blockNumber: data.blockNumber,
+      inscription: data
+    }
+  };
+
   getWinner = (data, digit = 2) => {
     if (data.length === 0) {
       return {
