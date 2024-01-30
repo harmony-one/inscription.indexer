@@ -9,7 +9,7 @@ export interface Domain {
   path: string;
   type: string;
   url: string;
-  gasPrice: number;
+  blockNumber: number;
   inscription: InscriptionEvent;
 }
 
@@ -75,7 +75,7 @@ export class DomainService {
                   type,
                   url,
                   path,
-                  gasPrice: value.gasPrice,
+                  blockNumber: value.blockNumber,
                   inscription: value,
                 });
               }
@@ -118,7 +118,7 @@ export class DomainService {
     const inscriptions = this.domainsData.filter((d) => d.domain === domain && !d.path);
 
     inscriptions.sort((a, b) =>
-      Number(a.gasPrice) > Number(b.gasPrice) ? -1 : 1,
+      Number(a.blockNumber) > Number(b.blockNumber) ? -1 : 1,
     );
 
     return inscriptions[0];
@@ -128,7 +128,7 @@ export class DomainService {
     const inscriptions = this.domainsData.filter((d) => d.domain === domain && d.path === path);
 
     inscriptions.sort((a, b) =>
-      Number(a.gasPrice) > Number(b.gasPrice) ? -1 : 1,
+      Number(a.blockNumber) > Number(b.blockNumber) ? -1 : 1,
     );
 
     return inscriptions[0];
