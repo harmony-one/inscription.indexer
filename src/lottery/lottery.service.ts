@@ -49,7 +49,7 @@ export class LotteryService {
       d => d.transactionHash.slice(-(domain.length)).toLowerCase() === domain.toLowerCase()
     )
 
-    if (data.length > 1) {
+    if (data?.length > 1) {
       data.sort((a, b) => b.timestamp - a.timestamp);
     }
 

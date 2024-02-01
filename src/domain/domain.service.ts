@@ -12,6 +12,7 @@ export interface Domain {
   type: URL_TYPE;
   blockNumber: number;
   inscription: InscriptionEvent;
+  payload?: any;
 }
 
 @Injectable()
@@ -48,13 +49,15 @@ export class DomainService {
         ) {
           try {
             //@ts-ignore
-            const inscriptionString = value.payload?.value;
+            const payload: any = value.payload;
 
-            if (inscriptionString) {
+            if (payload?.value) {
+              const inscriptionString = payload.value;
+
               const [domainWithPath = '', url = ''] = inscriptionString.split(',');
               let [domain, path] = domainWithPath.split('/');
 
-              domain = domain.replace('www.', '');
+              // domain = domain.replace('www.', '');
 
               if (domain && url && !restrictedDomains.includes(domain)) {
                 domainsData.push({
@@ -66,6 +69,16 @@ export class DomainService {
                   inscription: value,
                 });
               }
+            } else if (payload?.type === 'image') {
+              domainsData.push({
+                url: '',
+                path: '',
+                type: URL_TYPE.IMAGE,  
+                payload,
+                domain: value.transactionHash.slice(-2),
+                blockNumber: value.blockNumber,
+                inscription: value,
+              });
             }
           } catch (e) {
             console.error('syncDomains', e);
@@ -103,7 +116,7 @@ export class DomainService {
 
   getLatestInscriptionByDomain = (domain: string) => {
     const inscriptions = this.domainsData.filter(
-      d => d.domain === domain && !d.path && d.type
+      d => d.domain === domain && !d.path && (domain.includes('.') || d.type)
     );
 
     inscriptions.sort((a, b) =>
