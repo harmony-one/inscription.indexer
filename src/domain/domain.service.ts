@@ -4,6 +4,7 @@ import { IndexerService } from '../indexer/indexer.service';
 import { InscriptionEvent } from 'src/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { URL_TYPE, getTypeByUrl } from './helpers';
+import { telegramApi } from './telegramApi';
 
 export interface Domain {
   domain: string;
@@ -73,7 +74,7 @@ export class DomainService {
               domainsData.push({
                 url: '',
                 path: '',
-                type: URL_TYPE.IMAGE,  
+                type: URL_TYPE.IMAGE,
                 payload,
                 domain: value.transactionHash.slice(-2),
                 blockNumber: value.blockNumber,
@@ -114,7 +115,7 @@ export class DomainService {
     return this.domainsData.filter((d) => d.domain === domain);
   };
 
-  getLatestInscriptionByDomain = (domain: string) => {
+  getLatestInscriptionByDomain = async (domain: string) => {
     const inscriptions = this.domainsData.filter(
       d => d.domain === domain && !d.path && (domain.includes('.') || d.type)
     );
@@ -123,10 +124,32 @@ export class DomainService {
       Number(a.blockNumber) > Number(b.blockNumber) ? -1 : 1,
     );
 
+    if (inscriptions[0]?.type === URL_TYPE.IMAGE) {
+      const res = await telegramApi.getImageInfo(
+        inscriptions[0]?.payload?.imageId,
+        inscriptions[0]?.payload?.bot
+      );
+
+      const imageUrl = await telegramApi.getImgUrl(
+        res.file_path,
+        inscriptions[0]?.payload?.bot
+      );
+
+      const imageBase64 = await telegramApi.loadFile(imageUrl);
+
+      return {
+        ...inscriptions[0],
+        payload: {
+          ...inscriptions[0].payload,
+          image: imageBase64
+        }
+      };
+    }
+
     return inscriptions[0];
   };
 
-  getLatestInscriptionByDomainPath = (domain: string, path: string) => {
+  getLatestInscriptionByDomainPath = async (domain: string, path: string) => {
     const inscriptions = this.domainsData.filter((d) => d.domain === domain && d.path === path);
 
     inscriptions.sort((a, b) =>

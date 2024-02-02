@@ -45,8 +45,8 @@ export class AppController {
 
   @Get('/domain/:name')
   getMetaByDomain(@Param('name') name: string) {
-    return this.domainService.getLatestInscriptionByDomain(name) ||
-      this.lotteryService.getTweetByDomainFull(name);
+    return this.domainService.getLatestInscriptionByDomain(name) // ||
+      // this.lotteryService.getTweetByDomainFull(name);
   }
 
   @Get('/domain/:name/:path')
