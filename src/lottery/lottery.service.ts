@@ -2,15 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GetInscriptionsDto } from '../indexer/dto/inscriptions.dto';
 import { IndexerService } from '../indexer/indexer.service';
-import { DCEns } from 'one-country-sdk';
-import axios from 'axios';
+import * as _ from 'lodash';
 
 @Injectable()
 export class LotteryService {
   private readonly logger = new Logger(LotteryService.name);
   private lotteryData = [];
-  private lotteryStartTime = 1706641200;
-  private lotteryEndTime = 1706727600;
+  private lotteryStartTime = 1706814000;
+  private lotteryEndTime = 1706900400;
 
   constructor(
     private configService: ConfigService,
@@ -24,7 +23,7 @@ export class LotteryService {
   syncLottery = async () => {
     try {
       this.lotteryData = await this.indexerService.getInscriptions({
-        to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
+        // to: '0x3abf101D3C31Aec5489C78E8efc86CaA3DF7B053',
         timestampFrom: this.lotteryStartTime,
         timestampTo: this.lotteryEndTime,
         limit: 10000,
@@ -49,7 +48,7 @@ export class LotteryService {
       d => d.transactionHash.slice(-(domain.length)).toLowerCase() === domain.toLowerCase()
     )
 
-    if (data.length > 1) {
+    if (data?.length > 1) {
       data.sort((a, b) => b.timestamp - a.timestamp);
     }
 
@@ -62,6 +61,13 @@ export class LotteryService {
     }
   };
 
+  getDiff = (d, firstDomain, digit) => {
+    const curDomain = Number(`0x${d.transactionHash.slice(-digit)}`);
+    return firstDomain > curDomain
+      ? firstDomain - curDomain
+      : curDomain - firstDomain;
+  }
+
   getWinner = (data, digit = 2) => {
     if (data.length === 0) {
       return {
@@ -71,26 +77,26 @@ export class LotteryService {
     }
 
     const firstDomain = Number(`0x${data[0].transactionHash.slice(-digit)}`);
-    const diffMap = data.slice(1).map((d) => {
-      const curDomain = Number(`0x${d.transactionHash.slice(-digit)}`);
-      return firstDomain > curDomain
-        ? firstDomain - curDomain
-        : curDomain - firstDomain;
-    });
+    let diffMap = data.slice(1).map(d => this.getDiff(d, firstDomain, digit));
 
-    const minDiff = Math.min(...diffMap);
+    diffMap = _.uniq(diffMap);
 
-    const winners = [];
+    diffMap.sort((a, b) => Math.abs(a) > Math.abs(b) ? 1 : -1);
 
-    diffMap.forEach((value, idx) => {
-      if (value === minDiff) {
-        winners.push(data[idx + 1])
-      }
-    })
+    let winners = [];
+    let i = 0;
 
-    if (winners.length > 1) {
-      winners.sort((a, b) => b.timestamp - a.timestamp); // most recent tx is the winner
+    while (winners.length < 6 && i < diffMap.length) {
+      const minDiff = diffMap[i];
+      i++;
+
+      const newTxs = data.slice(1).filter(d => this.getDiff(d, firstDomain, digit) === minDiff)
+      winners = winners.concat(newTxs);
     }
+
+    // if (winners.length > 1) {
+    //   winners.sort((a, b) => b.timestamp - a.timestamp); // most recent tx is the winner
+    // }
 
     return {
       winner: winners[0],
@@ -99,10 +105,13 @@ export class LotteryService {
   };
 
   getLotteryStats = async () => {
-    const data = this.lotteryData.filter((d) =>
-      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
-      d.timestamp > this.lotteryStartTime
-    );
+    // const data = this.lotteryData.filter((d) =>
+    //   ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
+    //   d.timestamp > this.lotteryStartTime
+    // );
+    const data = this.lotteryData.filter((d) => d.payload?.type === 'image');
+
+    data.reverse();
 
     let inscriptionsByWallet = data.reduce((acc, d) => {
       acc[d.from] = (acc[d.from] || 0) + 1;
@@ -114,21 +123,35 @@ export class LotteryService {
       .sort(([, a], [, b]) => a > b ? -1 : 1)
       .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
 
+    let inscriptionsByUser = data.reduce((acc, d) => {
+      acc[d.payload?.username] = (acc[d.payload?.username] || 0) + 1;
+      return acc;
+    }, {})
+
+    // sort
+    inscriptionsByUser = Object.entries(inscriptionsByUser)
+      .sort(([, a], [, b]) => a > b ? -1 : 1)
+      .reduce((r, [k, v]) => ({ ...r, [k]: v }), {});
+
     const uniqueWallets = Object.keys(inscriptionsByWallet).length;
+
+    const { winners } = this.getWinner(data);
 
     return {
       totalInscriptions: this.lotteryData.length,
       totalValidInscriptions: data.length,
       uniqueWallets,
-      inscriptionsByWallet
+      inscriptionsByWallet,
+      inscriptionsByUser,
+      winners: winners.map(w => ({
+        hash: w.transactionHash,
+        username: w.payload?.username,
+      }))
     }
   }
 
   getLotteryInfo = async () => {
-    const data = this.lotteryData.filter((d) =>
-      ['x.com', 'twitter.com'].some((sub) => d.payload?.value?.includes(sub)) &&
-      d.timestamp > this.lotteryStartTime
-    );
+    const data = this.lotteryData.filter((d) => d.payload?.type === 'image');
 
     data.reverse();
 
@@ -153,73 +176,4 @@ export class LotteryService {
       winners: winners.map(w => w.transactionHash),
     };
   };
-
-  private async registerDomain(domainName: string, ownerAddress: string) {
-    const tx = await this.registerDomainDC(domainName, ownerAddress);
-
-    const numberOfAttempts = 5;
-    for (let i = 0; i < numberOfAttempts; i++) {
-      try {
-        this.logger.log(
-          `Relayer register ${domainName} attempt ${i + 1
-          } / ${numberOfAttempts}`,
-        );
-
-        const result = await this.registerDomainRelayer(
-          domainName,
-          ownerAddress,
-          tx.txHash,
-        );
-        if (result) {
-          break;
-        }
-      } catch (e) {
-        console.log('Register relater error:', e);
-      } finally {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-      }
-    }
-  }
-
-  private async registerDomainDC(domainName: string, ownerAddress: string) {
-    const dc = new DCEns({
-      contractAddress: this.configService.get('dc.contractAddress'),
-      privateKey: this.configService.get('dc.privateKey'),
-    });
-
-    const isAvailable = await dc.isAvailable(domainName);
-    if (!isAvailable) {
-      throw new Error(`Domain "${domainName}" is not available`);
-    }
-
-    const secret = Math.random().toString(26).slice(2);
-    const commitment = await dc.makeCommitment(
-      domainName,
-      ownerAddress,
-      secret,
-    );
-    const commitTx = await dc.commit(commitment);
-    // wait for commitment tx mined
-    await new Promise((resolve) => setTimeout(resolve, 6000));
-    const registerTx = await dc.register(domainName, ownerAddress, secret);
-    return registerTx;
-  }
-
-  private async registerDomainRelayer(
-    domainName: string,
-    ownerAddress: string,
-    txHash: string,
-  ) {
-    const { data } = await axios.post(
-      'https://1ns-registrar-relayer.hiddenstate.xyz/purchase',
-      {
-        domain: `${domainName}.country`,
-        txHash,
-        address: ownerAddress,
-        fast: 1,
-      },
-    );
-
-    return data;
-  }
 }

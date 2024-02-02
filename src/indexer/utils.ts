@@ -77,7 +77,7 @@ export const fetchTransactions = async (
   for (const block of res.data.result) {
     if (block.transactions && Array.isArray(block.transactions)) {
       const blockTxs = block.transactions.map((tx: BlockchainTx) => ({
-        hash: tx.hash,
+        hash: tx.ethHash,
         transactionIndex: tx.transactionIndex,
         blockHash: tx.blockHash,
         blockNumber: tx.blockNumber,

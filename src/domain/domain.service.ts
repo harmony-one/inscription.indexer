@@ -4,6 +4,7 @@ import { IndexerService } from '../indexer/indexer.service';
 import { InscriptionEvent } from 'src/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { URL_TYPE, getTypeByUrl } from './helpers';
+import { telegramApi } from './telegramApi';
 
 export interface Domain {
   domain: string;
@@ -12,6 +13,7 @@ export interface Domain {
   type: URL_TYPE;
   blockNumber: number;
   inscription: InscriptionEvent;
+  payload?: any;
 }
 
 @Injectable()
@@ -48,13 +50,15 @@ export class DomainService {
         ) {
           try {
             //@ts-ignore
-            const inscriptionString = value.payload?.value;
+            const payload: any = value.payload;
 
-            if (inscriptionString) {
+            if (payload?.value) {
+              const inscriptionString = payload.value;
+
               const [domainWithPath = '', url = ''] = inscriptionString.split(',');
               let [domain, path] = domainWithPath.split('/');
 
-              domain = domain.replace('www.', '');
+              // domain = domain.replace('www.', '');
 
               if (domain && url && !restrictedDomains.includes(domain)) {
                 domainsData.push({
@@ -66,6 +70,16 @@ export class DomainService {
                   inscription: value,
                 });
               }
+            } else if (payload?.type === 'image') {
+              domainsData.push({
+                url: '',
+                path: '',
+                type: URL_TYPE.IMAGE,
+                payload,
+                domain: value.transactionHash.slice(-2),
+                blockNumber: value.blockNumber,
+                inscription: value,
+              });
             }
           } catch (e) {
             console.error('syncDomains', e);
@@ -101,19 +115,41 @@ export class DomainService {
     return this.domainsData.filter((d) => d.domain === domain);
   };
 
-  getLatestInscriptionByDomain = (domain: string) => {
+  getLatestInscriptionByDomain = async (domain: string) => {
     const inscriptions = this.domainsData.filter(
-      d => d.domain === domain && !d.path && d.type
+      d => d.domain === domain && !d.path && (domain.includes('.') || d.type)
     );
 
     inscriptions.sort((a, b) =>
       Number(a.blockNumber) > Number(b.blockNumber) ? -1 : 1,
     );
 
+    if (inscriptions[0]?.type === URL_TYPE.IMAGE) {
+      const res = await telegramApi.getImageInfo(
+        inscriptions[0]?.payload?.imageId,
+        inscriptions[0]?.payload?.bot
+      );
+
+      const imageUrl = await telegramApi.getImgUrl(
+        res.file_path,
+        inscriptions[0]?.payload?.bot
+      );
+
+      const imageBase64 = await telegramApi.loadFile(imageUrl);
+
+      return {
+        ...inscriptions[0],
+        payload: {
+          ...inscriptions[0].payload,
+          image: imageBase64
+        }
+      };
+    }
+
     return inscriptions[0];
   };
 
-  getLatestInscriptionByDomainPath = (domain: string, path: string) => {
+  getLatestInscriptionByDomainPath = async (domain: string, path: string) => {
     const inscriptions = this.domainsData.filter((d) => d.domain === domain && d.path === path);
 
     inscriptions.sort((a, b) =>

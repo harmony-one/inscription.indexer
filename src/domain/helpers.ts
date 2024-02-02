@@ -2,6 +2,7 @@ export enum URL_TYPE {
     TWITTER = 'twitter',
     NOTION = 'notion',
     SUBSTACK = 'substack',
+    IMAGE = 'image',
 }
 
 export const getTypeByUrl = (url: string) => {
